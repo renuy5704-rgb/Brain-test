@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>Brain Test</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+    font-family:Arial,sans-serif;
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.container{
+    width:92%;
+    max-width:430px;
+    background:white;
+    border-radius:25px;
+    padding:25px;
+    text-align:center;
+    box-shadow:0 10px 30px #0005;
+}
+
+h1{
+    color:#333;
+}
+
+.brain{
+    font-size:75px;
+    margin:20px;
+}
+
+button{
+    width:100%;
+    padding:15px;
+    margin:7px 0;
+    border:0;
+    border-radius:15px;
+    color:white;
+    font-size:17px;
+    font-weight:bold;
+}
+
+.easy{
+    background:#16a085;
+}
+
+.medium{
+    background:#f39c12;
+}
+
+.hard{
+    background:#e74c3c;
+}
+
+.blue{
+    background:#667eea;
+}
+
+.dark{
+    background:#222;
+}
+
+.hidden{
+    display:none;
+}
+
+.stats{
+    display:flex;
+    justify-content:space-around;
+    margin:15px 0;
+    font-weight:bold;
+}
+
+#numbers{
+    background:#667eea;
+    color:white;
+    border-radius:18px;
+    padding:25px 5px;
+    margin:20px 0;
+    font-size:32px;
+    font-weight:bold;
+    letter-spacing:5px;
+}
+
+#timer{
+    font-size:40px;
+    font-weight:bold;
+}
+
+input{
+    width:95%;
+    padding:14px;
+    font-size:20px;
+    text-align:center;
+    border:2px solid #ddd;
+    border-radius:12px;
+}
+
+.result{
+    height:35px;
+    font-size:20px;
+    font-weight:bold;
+}
+
+#reader{
+    width:100%;
+    margin-top:15px;
+}
+
+#qrResult{
+    word-break:break-all;
+    margin:15px 0;
+    font-weight:bold;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+
+<!-- HOME -->
+
+<div id="home">
+
+<h1>🧠 BRAIN TEST</h1>
+
+<p>Test Your Memory!</p>
+
+<div class="brain">🧠</div>
+
+<button class="easy"
+onclick="startGame('easy')">
+🟢 EASY
+</button>
+
+<button class="medium"
+onclick="startGame('medium')">
+🟡 MEDIUM
+</button>
+
+<button class="hard"
+onclick="startGame('hard')">
+🔴 HARD
+</button>
+
+<button class="dark"
+onclick="openScanner()">
+📷 SCAN GAME QR
+</button>
+
+</div>
+
+
+<!-- GAME -->
+
+<div id="game" class="hidden">
+
+<h1>🧠 BRAIN TEST</h1>
+
+<p>
+Mode:
+<b id="mode">Easy</b>
+</p>
+
+<div class="stats">
+
+<span>
+🏆 Score:
+<b id="score">0</b>
+</span>
+
+<span>
+❤️ Lives:
+<b id="lives">3</b>
+</span>
+
+</div>
+
+<p>
+📈 Level:
+<b id="level">1</b>
+</p>
+
+<div id="timer">5</div>
+
+<div id="numbers">
+0000
+</div>
+
+<input
+id="answer"
+type="number"
+placeholder="Enter number">
+
+<button class="blue"
+onclick="checkAnswer()">
+✓ CHECK ANSWER
+</button>
+
+<div class="result"
+id="result">
+</div>
+
+<button class="dark"
+onclick="restartGame()">
+🔄 RESTART
+</button>
+
+<button class="dark"
+onclick="goHome()">
+🏠 HOME
+</button>
+
+</div>
+
+
+<!-- WIN -->
+
+<div id="win" class="hidden">
+
+<div class="brain">🎉</div>
+
+<h1>YOU WIN!</h1>
+
+<h2>
+🏆 Score:
+<span id="winScore">0</span>
+</h2>
+
+<button class="blue"
+onclick="restartGame()">
+🔄 PLAY AGAIN
+</button>
+
+<button class="dark"
+onclick="goHome()">
+🏠 HOME
+</button>
+
+</div>
+
+
+<!-- GAME OVER -->
+
+<div id="over" class="hidden">
+
+<div class="brain">💔</div>
+
+<h1>GAME OVER</h1>
+
+<h2>
+🏆 Score:
+<span id="overScore">0</span>
+</h2>
+
+<button class="hard"
+onclick="restartGame()">
+🔄 TRY AGAIN
+</button>
+
+<button class="dark"
+onclick="goHome()">
+🏠 HOME
+</button>
+
+</div>
+
+
+<!-- SCANNER -->
+
+<div id="scanner" class="hidden">
+
+<h1>📷 QR SCANNER</h1>
+
+<p>
+Scan the Brain Test QR code
+</p>
+
+<div id="reader"></div>
+
+<div id="qrResult"></div>
+
+<button class="dark"
+onclick="closeScanner()">
+⬅ BACK
+</button>
+
+</div>
+
+
+</div>
+
+
+<script>
+
+/* =================================
+GAME VARIABLES
+================================= */
+
+let score=0;
+
+let lives=3;
+
+let level=1;
+
+let answer="";
+
+let digits=4;
+
+let showTime=5;
+
+let timer;
+
+
+/* =================================
+PUBLIC GAME URL
+================================= */
+
+/*
+IMPORTANT:
+
+Yahan apni PUBLIC HTTPS
+Brain Test URL daalna hai.
+
+Example:
+
+https://yourname.github.io/braintest/
+
+*/
+
+const GAME_URL =
+"https://YOUR-USERNAME.github.io/braintest/";
+
+
+/* =================================
+START GAME
+================================= */
+
+function startGame(mode){
+
+if(mode==="easy"){
+
+digits=4;
+showTime=5;
+
+document.getElementById(
+"mode"
+).innerText="🟢 Easy";
+
+}
+
+else if(mode==="medium"){
+
+digits=6;
+showTime=4;
+
+document.getElementById(
+"mode"
+).innerText="🟡 Medium";
+
+}
+
+else{
+
+digits=8;
+showTime=3;
+
+document.getElementById(
+"mode"
+).innerText="🔴 Hard";
+
+}
+
+
+score=0;
+lives=3;
+level=1;
+
+
+document.getElementById(
+"score"
+).innerText=score;
+
+document.getElementById(
+"lives"
+).innerText=lives;
+
+document.getElementById(
+"level"
+).innerText=level;
+
+
+hideAll();
+
+document.getElementById(
+"game"
+).classList.remove("hidden");
+
+
+newRound();
+
+}
+
+
+/* =================================
+NEW ROUND
+================================= */
+
+function newRound(){
+
+clearInterval(timer);
+
+
+answer="";
+
+
+for(
+let i=0;
+i<digits;
+i++
+){
+
+answer +=
+Math.floor(
+Math.random()*10
+);
+
+}
+
+
+document.getElementById(
+"numbers"
+).innerText=answer;
+
+
+document.getElementById(
+"answer"
+).value="";
+
+
+document.getElementById(
+"result"
+).innerText="";
+
+
+let remaining=showTime;
+
+
+document.getElementById(
+"timer"
+).innerText=remaining;
+
+
+timer=setInterval(function(){
+
+remaining--;
+
+
+document.getElementById(
+"timer"
+).innerText=remaining;
+
+
+if(remaining<=0){
+
+clearInterval(timer);
+
+
+document.getElementById(
+"numbers"
+).innerText=
+"❓ ❓ ❓";
+
+}
+
+},1000);
+
+}
+
+
+/* =================================
+CHECK
+================================= */
+
+function checkAnswer(){
+
+let user=
+document.getElementById(
+"answer"
+).value;
+
+
+if(user===answer){
+
+score++;
+level++;
+
+
+document.getElementById(
+"score"
+).innerText=score;
+
+document.getElementById(
+"level"
+).innerText=level;
+
+
+document.getElementById(
+"result"
+).innerText=
+"🎉 CORRECT!";
+
+
+if(score>=5){
+
+winGame();
+
+}
+else{
+
+setTimeout(
+newRound,
+700
+);
+
+}
+
+}
+
+else{
+
+lives--;
+
+
+document.getElementById(
+"lives"
+).innerText=lives;
+
+
+document.getElementById(
+"result"
+).innerText=
+"❌ WRONG!";
+
+
+if(lives<=0){
+
+gameOver();
+
+}
+
+}
+
+}
+
+
+/* =================================
+WIN
+================================= */
+
+function winGame(){
+
+clearInterval(timer);
+
+hideAll();
+
+
+document.getElementById(
+"win"
+).classList.remove("hidden");
+
+
+document.getElementById(
+"winScore"
+).innerText=score;
+
+}
+
+
+/* =================================
+GAME OVER
+================================= */
+
+function gameOver(){
+
+clearInterval(timer);
+
+hideAll();
+
+
+document.getElementById(
+"over"
+).classList.remove("hidden");
+
+
+document.getElementById(
+"overScore"
+).innerText=score;
+
+}
+
+
+/* =================================
+RESTART
+================================= */
+
+function restartGame(){
+
+clearInterval(timer);
+
+score=0;
+
+lives=3;
+
+level=1;
+
+
+document.getElementById(
+"score"
+).innerText=0;
+
+document.getElementById(
+"lives"
+).innerText=3;
+
+document.getElementById(
+"level"
+).innerText=1;
+
+
+hideAll();
+
+
+document.getElementById(
+"game"
+).classList.remove("hidden");
+
+
+newRound();
+
+}
+
+
+/* =================================
+HOME
+================================= */
+
+function goHome(){
+
+clearInterval(timer);
+
+hideAll();
+
+
+document.getElementById(
+"home"
+).classList.remove("hidden");
+
+}
+
+
+/* =================================
+HIDE ALL
+================================= */
+
+function hideAll(){
+
+document.getElementById(
+"home"
+).classList.add("hidden");
+
+document.getElementById(
+"game"
+).classList.add("hidden");
+
+document.getElementById(
+"win"
+).classList.add("hidden");
+
+document.getElementById(
+"over"
+).classList.add("hidden");
+
+document.getElementById(
+"scanner"
+).classList.add("hidden");
+
+}
+
+
+/* =================================
+QR SCANNER
+================================= */
+
+let scanner=null;
+
+
+function openScanner(){
+
+hideAll();
+
+
+document.getElementById(
+"scanner"
+).classList.remove("hidden");
+
+
+scanner =
+new Html5Qrcode(
+"reader"
+);
+
+
+scanner.start(
+
+{
+facingMode:"environment"
+},
+
+{
+fps:10,
+
+qrbox:{
+width:250,
+height:250
+}
+
+},
+
+(decodedText)=>{
+
+document.getElementById(
+"qrResult"
+).innerText=
+"✅ QR Scanned!";
+
+
+scanner.stop().then(
+function(){
+
+window.location.href =
+decodedText;
+
+});
+
+},
+
+(errorMessage)=>{
+
+}
+
+).catch(
+function(error){
+
+document.getElementById(
+"qrResult"
+).innerText=
+"❌ Camera open nahi ho raha. Camera permission Allow karo.";
+
+});
+
+}
+
+
+/* =================================
+CLOSE SCANNER
+================================= */
+
+function closeScanner(){
+
+if(scanner){
+
+scanner.stop().catch(
+function(){}
+);
+
+scanner.clear().catch(
+function(){}
+);
+
+scanner=null;
+
+}
+
+goHome();
+
+}
+
+</script>
+
+</body>
+  </html>
